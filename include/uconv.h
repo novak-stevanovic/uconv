@@ -5,6 +5,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* UTF8 SEQUENCES:
+ * 1 BYTE SEQUENCE - START BYTE FORMAT: 0xxxxxxx
+ * 2 BYTE SEQUENCE - START BYTE FORMAT: 110xxxxx
+ * 3 BYTE SEQUENCE - START BYTE FORMAT: 1110xxxx
+ * 4 BYTE SEQUENCE - START BYTE FORMAT: 11110xxx
+ * CONTINUATIOn BYTE - FORMAT: 10xxxxxx */
+
 /* -------------------------------------------------------------------------- */
 
 typedef int uc_status_t;
@@ -25,15 +32,15 @@ typedef int uc_status_t;
 
 typedef uint8_t uc_flags_t;
 
-#define UC_ALLOW_SURROGATES (1 << 0)
+#define UC_ALLOW_SURROGATE (1 << 0)
 #define UC_ALLOW_OVERLONG (1 << 1)
 
-void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t size,
+void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         uint32_t* out_utf32_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_processed_bytes, size_t* out_len, uc_status_t* out_status);
+        size_t* out_width, size_t* out_len, uc_status_t* out_status);
 
-void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t len,
+void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         uint8_t* out_utf8_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_processed_bytes, size_t* out_len, uc_status_t* out_status);
+        size_t* out_width, size_t* out_len, uc_status_t* out_status);
 
 #endif // _UCONV_H_

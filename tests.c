@@ -1,6 +1,24 @@
 #include "uconv.h"
 #include <stdio.h>
 
+void print_utf8_seq(uint8_t* seq, size_t len)
+{
+    if(len == 0) return;
+
+    size_t i;
+    printf("%.*s", (int)len, seq);
+    printf(" (");
+    for(i = 0; i < len - 1; i++) printf("%x ", seq[i]);
+    printf("%x", seq[i]);
+    printf(")");
+}
+
+void print_utf32_seq(uint32_t* seq, size_t width)
+{
+    size_t i;
+    for(i = 0; i < width; i++) printf("%x ", seq[i]);
+}
+
 int main(int argc, char *argv[])
 {
     unsigned char seq1[] = { 0x41 };               // “A” (U+0041)
@@ -48,61 +66,49 @@ int main(int argc, char *argv[])
         0xE0,0xA4,0xA4,  /* त U+0924 */
         0xE0,0xA5,0x87   /* े U+0947 */
     }; // length = 18
+    
+    // 0xD800 - surrogate start
+    unsigned char seq13[] = {
+        0xED, 0xA0, 0x80
+    };
 
+    // overlong + surrogate start
+    unsigned char seq14[] = {
+        0xF0, 0x80, 0x80, 0x81,
+        0xED, 0xA0, 0x80
+    };
 
     uint32_t cps[20];
     uint8_t seq[50];
-
-#define SEQ seq10
-    printf("[UTF8] Start sequence(str): %.*s\n", (int)sizeof(SEQ), SEQ);
-    size_t i;
-    printf("[UTF8] Start sequence(bytes): " );
-    for(i = 0; i < sizeof(SEQ); i++)
-    {
-        printf("%x ", SEQ[i]);
-    }
-    printf("\n");
-
-    /* ---------------------------------------------------------------------- */
-    printf("------------------------------------\n");
-    /* ---------------------------------------------------------------------- */
-
-    size_t pb, plen;
     uc_status_t _status;
-    printf("[UTF-8 TO UTF-32] Converting...\n");
-    uc_utf8_to_utf32(SEQ, sizeof(SEQ), cps, 20, 0, &pb, &plen, &_status);
 
-    printf("[UTF-8 TO UTF-32] Processed bytes: %ld | Length: %ld | Status: %d\n",
-            pb, plen, _status);
+#define SEQ seq14
 
-    printf("[UTF-8 TO UTF-32] Resulting codepoints: ");
-    for(i = 0; i < plen; i++)
-    {
-        printf("%x ", cps[i]);
-    }
+    printf("--------------------------------------------------------------\n");
+    printf("[UTF-8] Starting sequence: ");
+    print_utf8_seq(SEQ, sizeof(SEQ));
+    printf(" - length: %ld", sizeof(SEQ));
     printf("\n");
 
-    /* ---------------------------------------------------------------------- */
-    printf("------------------------------------\n");
-    /* ---------------------------------------------------------------------- */
-
-    size_t pcount, pbytes;
-    printf("[UTF-32 TO UTF-8] Converting...\n");
-    uc_utf32_to_utf8(cps, plen, seq, 50, 0, &pbytes, &pcount, &_status);
-
-    printf("[UTF-32 TO UTF-8] Processed count: %ld | Status: %d\n",
-            pcount, _status);
-
-    printf("[UTF-32 TO UTF-8] End sequence(str): %.*s\n", (int)pbytes, seq);
-
-    printf("[UTF-32 TO UTF-8] End sequence(bytes): ");
-    for(i = 0; i < pbytes; i++)
-    {
-        printf("%x ", seq[i]);
-    }
+    printf("--------------------------------------------------------------\n");
+    printf("[UTF-8 -> UTF-32] Converting...\n");
+    size_t width1, len1;
+    uc_utf8_to_utf32(SEQ, sizeof(SEQ), cps, 20, UC_ALLOW_OVERLONG | UC_ALLOW_SURROGATE, &width1, &len1, &_status);
+    printf("[UTF-8 -> UTF-32] Result: width - %ld | len - %ld | status - %d\n",
+            width1, len1, _status);
+    printf("[UTF-8 -> UTF-32] Resulting codepoints: ");
+    print_utf32_seq(cps, width1);
     printf("\n");
 
-    printf("--- DONE ---\n");
+    printf("--------------------------------------------------------------\n");
+    printf("[UTF-32 -> UTF-8] Converting back...\n");
+    size_t width2, len2;
+    uc_utf32_to_utf8(cps, width1, seq, 50, UC_ALLOW_SURROGATE, &width2, &len2, &_status);
+    printf("[UTF-32 -> UTF-8] Result: width - %ld | len - %ld | status - %d\n",
+            width2, len2, _status);
+    printf("[UTF-32 -> UTF-8] Resulting sequence: ");
+    print_utf8_seq(seq, len2);
+    printf("\n");
 
     return 0;
 }

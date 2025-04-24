@@ -12,15 +12,6 @@
 #define _4BYTE_RANGE_START 0x010000
 #define _4BYTE_RANGE_END 0x10FFFF
 
-
-#include <stdlib.h>
-/* UTF8 SEQUENCES:
- * 1 BYTE SEQUENCE - FORMAT: 0xxxxxxx
- * 2 BYTE SEQUENCE - FORMAT: 110xxxxx
- * 3 BYTE SEQUENCE - FORMAT: 1110xxxx
- * 4 BYTE SEQUENCE - FORMAT: 11110xxx
- * COUCINUATION BYTE - FORMAT: 10xxxxxx */
-
 static inline bool _codepoint_surrogate(uint32_t codepoint)
 {
     return ((codepoint >= _SURROGATE_RANGE_START) &&
@@ -49,19 +40,18 @@ static inline bool _utf8_overlong(uint32_t codepoint, size_t unit_utf8_size)
     }
 }
 
-#define __RETURN(processed_bytes_val, len_val, status_val)                     \
-    if(out_processed_bytes != NULL)                                            \
-        *out_processed_bytes = (processed_bytes_val);                          \
+#define __RETURN(width, len, status)                                           \
+    if(out_width != NULL)                                                      \
+        *out_width = (width);                                                  \
     if(out_len != NULL)                                                        \
-        *out_len = (len_val);                                                  \
+        *out_len = (len);                                                      \
     if(out_status != NULL)                                                     \
-        *out_status = (status_val);                                            \
-    return;                                                                    \
+        *out_status = status;                                                  \
+    return                                                                     \
 
-
-void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t size,
-        uint32_t* out_utf32_seq, size_t capacity, uint8_t flags,
-        size_t* out_processed_bytes, size_t* out_len, uc_status_t* out_status)
+void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
+        uint32_t* out_utf32_seq, size_t capacity, uc_flags_t flags,
+        size_t* out_width, size_t* out_len, uc_status_t* out_status)
 {
     if((utf8_seq == NULL) || (out_utf32_seq == NULL))
     {
@@ -70,90 +60,81 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t size,
 
     size_t i = 0;
     size_t counter = 0;
-    size_t it_len;
-    uint32_t it_codepoint;
-    for(; i < size; counter++)
+    size_t i_len;
+    uint32_t i_cp;
+    for(; i < len; counter++)
     {
         if(counter >= capacity)
         {
-            __RETURN(i, counter, UC_ERR_NOT_ENOUGH_CAPACITY);
+            __RETURN(counter, i, UC_ERR_NOT_ENOUGH_CAPACITY);
         }
 
         if((utf8_seq[i] & 0x80) == 0) // 1 byte
         {
-            it_len = 1;
-            it_codepoint = (uint32_t)(utf8_seq[i]);
+            i_len = 1;
+            i_cp = (uint32_t)(utf8_seq[i]);
         }
         else if((utf8_seq[i] & 0xE0) == 0xC0) // 2 bytes
         {
-            it_len = 2;
-            // set the first 3 bytes to 0
-            it_codepoint = (uint32_t)(utf8_seq[i] & (~0xE0));
+            i_len = 2;
+            i_cp = ((uint32_t)(utf8_seq[i] & 0x3F)) << 6; // unmask
         }
         else if((utf8_seq[i] & 0xF0) == 0xE0) // 3 bytes
         {
-            it_len = 3;
-            // set the first 4 bytes to 0
-            it_codepoint = (uint32_t)(utf8_seq[i] & (~0xF0));
+            i_len = 3;
+            i_cp = ((uint32_t)(utf8_seq[i] & 0x1F) << 12);
         }
         else if((utf8_seq[i] & 0xF8) == 0xF0) // 4 bytes
         {
-            it_len = 4;
-            // set the first 5 bytes to 0
-            it_codepoint = (uint32_t)(utf8_seq[i] & (~0xF8));
+            i_len = 4;
+            i_cp = ((uint32_t)(utf8_seq[i] & 0x0F) << 18);
         }
         else // invalid start byte
         {
-            __RETURN(i, counter, UC_ERR_INVALID_SBYTE);
+            __RETURN(counter, i, UC_ERR_INVALID_SBYTE);
         }
 
-        // current start byte + size of current symbol > size of the whole utf8 sequence
-        if((i + it_len) > size)
+        if((i + i_len) > len)
         {
-            __RETURN(i, counter, UC_ERR_INVALID_SIZE);
+            __RETURN(counter, i, UC_ERR_INVALID_SIZE);
         }
 
-        size_t end = i + it_len;
-        i++;
-        for(; i < end; i++) // process continuation bytes
+        // Process (it_len - 1) continuation bytes
+        size_t j, j_shift;
+        for(j = 1; j < i_len; j++)
         {
-            it_codepoint <<= 6;
-
-            if((utf8_seq[i] & 0xC0) != 0x80) // invalid continuation byte
+            if((utf8_seq[i + j] & 0xC0) != 0x80) // invalid continuation byte
             {
-                __RETURN(i - 1, counter, UC_ERR_INVALID_CBYTE);
+                __RETURN( counter, i + j - 1, UC_ERR_INVALID_CBYTE);
             }
+            j_shift = (i_len - j - 1) * 6;
 
-            it_codepoint |= (utf8_seq[i] ^ 0x80);
+            i_cp |= ((utf8_seq[i + j] & 0x7F) << j_shift);
         }
-
-        // if(_is_overflow(it_codepoint))
-        // {
-        //     __RETURN(i, counter, UC_ERR_UTF_OVERFLOW);
-        // }
+        i += j;
 
         // Check for overlong if needed
         if(!(flags & UC_ALLOW_OVERLONG) &&
-            _utf8_overlong(it_codepoint, it_len))
+            _utf8_overlong(i_cp, i_len))
         {
-            __RETURN(i, counter, UC_ERR_OVERLONG);
+            __RETURN(counter, i, UC_ERR_OVERLONG);
         }
 
         // Check for surrogate if needed
-        if(!(flags & UC_ALLOW_SURROGATES) && _codepoint_surrogate(it_codepoint))
+        if(!(flags & UC_ALLOW_SURROGATE) && _codepoint_surrogate(i_cp))
         {
-            __RETURN(i, counter, UC_ERR_SURROGATE);
+            __RETURN(counter, i, UC_ERR_SURROGATE);
         }
 
-        out_utf32_seq[counter] = it_codepoint;
+        out_utf32_seq[counter] = i_cp;
     }
 
-    __RETURN(i, counter, UC_SUCCESS);
+    __RETURN(counter, i, UC_SUCCESS);
 }
 
-void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t count,
-        uint8_t* out_utf8_seq, size_t capacity, uint8_t flags,
-        size_t* out_processed_bytes, size_t* out_len, uc_status_t* out_status)
+void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
+        uint8_t* out_utf8_seq, size_t capacity, uc_flags_t flags,
+        size_t* out_width, size_t* out_len, uc_status_t* out_status)
 {
     if((utf32_seq == NULL) || (out_utf8_seq == NULL))
     {
@@ -162,43 +143,43 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t count,
 
     size_t i = 0, j;
     size_t bcount = 0;
-    uint32_t it_cp;
-    size_t it_len;
-    for(; i < count; i++, bcount += it_len)
+    uint32_t i_cp;
+    size_t i_len;
+    for(; i < width; i++, bcount += i_len)
     {
-        it_cp = utf32_seq[i];
-        if(!(flags & UC_ALLOW_SURROGATES) && _codepoint_surrogate(it_cp))
+        i_cp = utf32_seq[i];
+        if(!(flags & UC_ALLOW_SURROGATE) && _codepoint_surrogate(i_cp))
         {
-            __RETURN(bcount, i, UC_ERR_SURROGATE);
+            __RETURN(i, bcount, UC_ERR_SURROGATE);
         }
-        if(_codepoint_overflow(it_cp))
+        if(_codepoint_overflow(i_cp))
         {
-            __RETURN(bcount, i, UC_ERR_OVERFLOW);
+            __RETURN(i, bcount, UC_ERR_OVERFLOW);
         }
 
-        if(it_cp <= _1BYTE_RANGE_END)
+        if(i_cp <= _1BYTE_RANGE_END)
         {
-            it_len = 1;
-            out_utf8_seq[bcount] = (uint8_t)it_cp;
+            i_len = 1;
+            out_utf8_seq[bcount] = (uint8_t)i_cp;
         }
-        else if(it_cp <= _2BYTE_RANGE_END)
+        else if(i_cp <= _2BYTE_RANGE_END)
         {
             // 0 0 00000abc defghijk
             // 1. 110abcde
             // 2. 10fghijk
 
-            it_len = 2;
-            out_utf8_seq[bcount] = ((uint8_t)(it_cp >> 6)) | 0xC0;
+            i_len = 2;
+            out_utf8_seq[bcount] = ((uint8_t)(i_cp >> 6)) | 0xC0;
         }
-        else if(it_cp <= _3BYTE_RANGE_END)
+        else if(i_cp <= _3BYTE_RANGE_END)
         {
             // 0 0 abcdefgh ijklmnop
             // 1. 1110abcd
             // 2. 10efghij
             // 3. 10klmnop
 
-            it_len = 3;
-            out_utf8_seq[bcount] = ((uint8_t)(it_cp >> 12)) | 0xE0;
+            i_len = 3;
+            out_utf8_seq[bcount] = ((uint8_t)(i_cp >> 12)) | 0xE0;
         }
         else // 4 bytes
         {
@@ -208,25 +189,26 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t count,
             // 3. 10jklmno
             // 4. 10pqrstu
 
-            it_len = 4;
-            out_utf8_seq[bcount] = ((uint8_t)(it_cp >> 18)) | 0xF0;
+            i_len = 4;
+            out_utf8_seq[bcount] = ((uint8_t)(i_cp >> 18)) | 0xF0;
         }
 
-        if((bcount + it_len) > capacity)
+        if((bcount + i_len) > capacity)
         {
-            __RETURN(bcount, i, UC_ERR_NOT_ENOUGH_CAPACITY);
+            __RETURN(i, bcount, UC_ERR_NOT_ENOUGH_CAPACITY);
         }
 
-        size_t it_shift;
-        uint8_t it_cbyte;
-        for(j = 0; j < it_len - 1; j++)
+        // Process continuation bytes
+        size_t j_shift;
+        uint8_t j_cbyte;
+        for(j = 1; j < i_len; j++)
         {
-            it_shift = 6 * (it_len - 1 - j - 1);
-            it_cbyte = (((uint8_t)(it_cp >> it_shift)) & (~0xC0)) | 0x80;
-            out_utf8_seq[bcount + j + 1] = it_cbyte;
+            j_shift = 6 * (i_len - 1 - j);
+            j_cbyte = (((uint8_t)(i_cp >> j_shift)) & (~0xC0)) | 0x80;
+            out_utf8_seq[bcount + j] = j_cbyte;
         }
 
     }
 
-    __RETURN(bcount, i, UC_SUCCESS);
+    __RETURN(i, bcount, UC_SUCCESS);
 }
