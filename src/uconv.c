@@ -66,30 +66,24 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         {
             __RETURN(counter, UC_ERR_NOT_ENOUGH_CAPACITY);
         }
-
-        if((utf8_seq[i] & 0x80) == 0) // 1 byte
+        
+        i_len = uc_utf8_char_len(utf8_seq[i]);
+        switch(i_len)
         {
-            i_len = 1;
-            i_cp = (uint32_t)(utf8_seq[i]);
-        }
-        else if((utf8_seq[i] & 0xE0) == 0xC0) // 2 bytes
-        {
-            i_len = 2;
-            i_cp = ((uint32_t)(utf8_seq[i] & 0x3F)) << 6; // unmask
-        }
-        else if((utf8_seq[i] & 0xF0) == 0xE0) // 3 bytes
-        {
-            i_len = 3;
-            i_cp = ((uint32_t)(utf8_seq[i] & 0x1F) << 12);
-        }
-        else if((utf8_seq[i] & 0xF8) == 0xF0) // 4 bytes
-        {
-            i_len = 4;
-            i_cp = ((uint32_t)(utf8_seq[i] & 0x0F) << 18);
-        }
-        else // invalid start byte
-        {
-            __RETURN(counter, UC_ERR_INVALID_SBYTE);
+            case 1:
+                i_cp = (uint32_t)(utf8_seq[i]);
+                break;
+            case 2:
+                i_cp = ((uint32_t)(utf8_seq[i] & 0x3F)) << 6;
+                break;
+            case 3:
+                i_cp = ((uint32_t)(utf8_seq[i] & 0x1F) << 12);
+                break;
+            case 4:
+                i_cp = ((uint32_t)(utf8_seq[i] & 0x0F) << 18);
+                break;
+            default:
+                __RETURN(counter, UC_ERR_INVALID_SBYTE);
         }
 
         if((i + i_len) > len)
@@ -129,6 +123,16 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
     }
 
     __RETURN(counter, UC_SUCCESS);
+}
+
+
+size_t uc_utf8_char_len(const uint8_t utf8_start_byte)
+{
+    if((utf8_start_byte & 0x80) == 0) return 1;
+    else if((utf8_start_byte & 0xE0) == 0xC0) return 2;
+    else if((utf8_start_byte & 0xF0) == 0xE0) return 3;
+    else if((utf8_start_byte & 0xF8) == 0xF0) return 4;
+    else return SIZE_MAX;
 }
 
 #undef __RETURN

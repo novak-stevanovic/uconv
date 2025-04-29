@@ -64,7 +64,6 @@ typedef uint8_t uc_flags_t;
  * 2) UC_ALLOW_OVERLONG - If the function runs into an "overlong-ly encoded"
  * codepoint, it will not return with an error, but proceed decoding.
  *
- *
  * STATUS CODES:
  * 1) UC_SUCCESS - Decoding is successful.
  * 2) UC_ERR_INVALID_ARG - `utf8_seq` is NULL.
@@ -85,7 +84,21 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         uint32_t* out_utf32_seq, size_t capacity, uc_flags_t flags,
         size_t* out_width, uc_status_t* out_status);
 
+/* ------------------------------------------------------ */
+
+/**
+ * @brief Determines the length of the UTF-8 unit based on the starting byte.
+ *
+ * RETURN VALUE:
+ * 1) ON SUCCESS: An integer value in the range [1, 4] representing the length
+ * of the UTF-8 "character".
+ * 2) ON FAILURE: SIZE_MAX. This can occur if the given `utf8_start_byte` is of
+ * invalid format.
+ */
+size_t uc_utf8_char_len(const uint8_t utf8_start_byte);
+
 /* -------------------------------------------------------------------------- */
+
 /**
  * @brief Converts a UTF-32 code point sequence to a UTF-8 encoded byte sequence.
  *
@@ -129,5 +142,7 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
 void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         uint8_t* out_utf8_seq, size_t capacity, uc_flags_t flags,
         size_t* out_width, size_t* out_len, uc_status_t* out_status);
+
+/* -------------------------------------------------------------------------- */
 
 #endif // _UCONV_H_
