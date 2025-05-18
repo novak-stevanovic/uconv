@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* UTF8 SEQUENCES:
  * 1 BYTE SEQUENCE - START BYTE FORMAT: 0xxxxxxx
  * 2 BYTE SEQUENCE - START BYTE FORMAT: 110xxxxx
@@ -144,5 +148,9 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         size_t* out_width, size_t* out_len, uc_status_t* out_status);
 
 /* -------------------------------------------------------------------------- */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _UCONV_H_
