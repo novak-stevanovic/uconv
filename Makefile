@@ -18,9 +18,7 @@ endif
 
 ifneq ($(LIB_TYPE),so)
     ifneq ($(LIB_TYPE),ar)
-        ifneq ($(LIB_TYPE),ar_thin)
-            $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar/ar_thin] [OPT={0..3}])
-        endif
+        $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar] [OPT={0..3}])
     endif
 endif
 
@@ -40,7 +38,7 @@ ifneq ($(OPT),0)
     ifneq ($(OPT),1)
         ifneq ($(OPT),2)
             ifneq ($(OPT),3)
-                $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar/ar_thin] [OPT={0..3}])
+                $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar] [OPT={0..3}])
             endif
         endif
     endif
@@ -50,16 +48,10 @@ OPT_FLAG = -O$(OPT)
 
 # ---------------------------------------------------------
 
-ifeq ($(LIB_TYPE),ar_thin)
-    AR_TFLAG = --thin
-else
-    AR_TFLAG =
-endif
-
 LIB_NAME = uconv
 
 CC = gcc
-AR = ar $(AR_TFLAG)
+AR = ar
 MAKE = make
 
 C_SRC = $(shell find src -name "*.c")
@@ -74,9 +66,6 @@ INSTALL_INCLUDE = include/uconv.h
 # ---------------------------------------------------------
 # Thirdparty
 # ---------------------------------------------------------
-
-# Flat archives to include in final .so/.ar lib file
-THIRDPARTY_AR =
 
 THIRDPARTY_CFLAGS =
 
@@ -129,17 +118,15 @@ endif
 # Targets
 # -----------------------------------------------------------------------------
 
-.PHONY: all thirdparty clean install uninstall
+.PHONY: all clean install uninstall
 
 all: $(LIB_FILE)
 
 $(LIB_AR_FILE): $(C_OBJ)
-	$(AR) rcs $@ $(C_OBJ) $(THIRDPARTY_AR)
+	$(AR) rcs $@ $(C_OBJ)
 
-$(LIB_SO_FILE): $(C_OBJ) | thirdparty
-	$(CC) -shared $(C_OBJ) $(THIRDPARTY_AR) -o $@
-
-thirdparty:
+$(LIB_SO_FILE): $(C_OBJ)
+	$(CC) -shared $(C_OBJ) -o $@
 
 $(C_OBJ): build/%.o: src/%.c
 	@mkdir -p $(dir $@)
