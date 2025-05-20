@@ -27,38 +27,49 @@ endif
 LIB_NAME = uconv
 
 CC = gcc
+AR = ar
+MAKE = make
 
 C_SRC = $(shell find src -name "*.c")
 C_OBJ = $(patsubst src/%.c,build/%.o,$(C_SRC))
+
+INSTALL_INCLUDE = include/uconv.h
 
 # -----------------------------------------------------------------------------
 # Build Flags
 # -----------------------------------------------------------------------------
 
 # ---------------------------------------------------------
+# Thirdparty
+# ---------------------------------------------------------
+
+THIRDPARTY_CFLAGS =
+
+# ---------------------------------------------------------
 # Base Flags
 # ---------------------------------------------------------
 
-BASE_CFLAGS_DEBUG = -g
-BASE_CFLAGS_OPTIMIZATION = -O0
-BASE_CFLAGS_WARN = -Wall
-BASE_CFLAGS_MAKE = -MMD -MP
-BASE_CFLAGS_INCLUDE = -Iinclude
+SRC_CFLAGS_DEBUG = -g
+SRC_CFLAGS_OPTIMIZATION = -O2
+SRC_CFLAGS_WARN = -Wall
+SRC_CFLAGS_MAKE = -MMD -MP
+SRC_CFLAGS_INCLUDE = -Iinclude $(THIRDPARTY_CFLAGS)
 
-BASE_CFLAGS = -c -fPIC $(BASE_CFLAGS_INCLUDE) $(BASE_CFLAGS_MAKE) \
-$(BASE_CFLAGS_WARN) $(BASE_CFLAGS_DEBUG) $(BASE_CFLAGS_OPTIMIZATION)
-
-# ---------------------------------------------------------
-# C Source Flags
-# ---------------------------------------------------------
-
-SRC_CFLAGS = $(BASE_CFLAGS)
+SRC_CFLAGS = -c -fPIC $(SRC_CFLAGS_INCLUDE) $(SRC_CFLAGS_MAKE) \
+$(SRC_CFLAGS_WARN) $(SRC_CFLAGS_DEBUG) $(SRC_CFLAGS_OPTIMIZATION)
 
 # ---------------------------------------------------------
 # Test Flags
 # ---------------------------------------------------------
 
-TEST_CFLAGS = $(BASE_CFLAGS)
+TEST_CFLAGS_DEBUG = -g
+TEST_CFLAGS_OPTIMIZATION = -O0
+TEST_CFLAGS_WARN = -Wall
+TEST_CFLAGS_MAKE = -MMD -MP
+TEST_CFLAGS_INCLUDE = -Iinclude
+
+TEST_CFLAGS = -c -fPIC $(TEST_CFLAGS_INCLUDE) $(TEST_CFLAGS_MAKE) \
+$(TEST_CFLAGS_WARN) $(TEST_CFLAGS_DEBUG) $(TEST_CFLAGS_OPTIMIZATION)
 
 TEST_LFLAGS = -L. -l$(LIB_NAME)
 
@@ -75,22 +86,25 @@ LIB_SO_FILE = lib$(LIB_NAME).so
 
 ifeq ($(LIB_TYPE), archive)
 LIB_FILE = $(LIB_AR_FILE)
-LIB_MAKE = ar rcs $(LIB_FILE) $(C_OBJ)
 else 
 LIB_FILE = $(LIB_SO_FILE)
-LIB_MAKE = $(CC) -shared $(C_OBJ) -o $(LIB_FILE)
 endif
 
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
 
-.PHONY: all clean install uninstall 
+.PHONY: all thirdparty clean install uninstall
 
 all: $(LIB_FILE)
 
-$(LIB_FILE): $(C_OBJ)
-	$(LIB_MAKE)
+$(LIB_AR_FILE): $(C_OBJ) | thirdparty
+	$(AR) rcs $@ $(C_OBJ)
+
+$(LIB_SO_FILE): $(C_OBJ) | thirdparty
+	$(CC) -shared $(C_OBJ) $(_UCONV_LIB) -o $@
+
+thirdparty:
 
 $(C_OBJ): build/%.o: src/%.c
 	@mkdir -p $(dir $@)
@@ -112,7 +126,7 @@ install:
 	cp $(LIB_FILE) $(PREFIX)/lib
 
 	@mkdir -p $(PREFIX)/include/$(LIB_NAME)
-	cp -r include/* $(PREFIX)/include/$(LIB_NAME)
+	cp -r $(INSTALL_INCLUDE) $(PREFIX)/include/$(LIB_NAME)
 
 # uninstall ------------------------------------------------
 
