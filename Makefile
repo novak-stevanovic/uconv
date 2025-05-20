@@ -144,9 +144,10 @@ build/tests.o: tests.c
 # install --------------------------------------------------
 
 install:
+	# lib file
 	@mkdir -p $(PREFIX)/lib
-	cp $(LIB_FILE) $(PREFIX)/lib
-
+	ln $(LIB_FILE) $(PREFIX)/lib
+	# headers
 	@mkdir -p $(PREFIX)/include/$(LIB_NAME)
 	cp -r $(INSTALL_INCLUDE) $(PREFIX)/include/$(LIB_NAME)
 
