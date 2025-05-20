@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Validaton & Global Settings
+# Validation & Global Settings
 # -----------------------------------------------------------------------------
 
 GOAL_COUNT := $(words $(MAKECMDGOALS))
@@ -10,24 +10,56 @@ ifneq ($(GOAL_COUNT),1)
     endif
 endif
 
+# ---------------------------------------------------------
+
 ifndef LIB_TYPE
-    LIB_TYPE = shared
+    LIB_TYPE = so
 endif
+
+ifneq ($(LIB_TYPE),so)
+    ifneq ($(LIB_TYPE),ar)
+        ifneq ($(LIB_TYPE),ar_thin)
+            $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar/ar_thin] [OPT={0..3}])
+        endif
+    endif
+endif
+
+# ---------------------------------------------------------
 
 ifndef PREFIX
     PREFIX = /usr/local
 endif
 
-ifneq ($(LIB_TYPE),shared)
-    ifneq ($(LIB_TYPE),archive)
-        $(error Invalid LIB_TYPE. USAGE: make [TARGET] [LIB_TYPE=shared/archive])
+# ---------------------------------------------------------
+
+ifndef OPT
+    OPT = 2
+endif
+
+ifneq ($(OPT),0)
+    ifneq ($(OPT),1)
+        ifneq ($(OPT),2)
+            ifneq ($(OPT),3)
+                $(error Invalid settings. USAGE: make [TARGET] [LIB_TYPE=so/ar/ar_thin] [OPT={0..3}])
+            endif
+        endif
     endif
+endif
+
+OPT_FLAG = -O$(OPT)
+
+# ---------------------------------------------------------
+
+ifeq ($(LIB_TYPE),ar_thin)
+    AR_TFLAG = --thin
+else
+    AR_TFLAG =
 endif
 
 LIB_NAME = uconv
 
 CC = gcc
-AR = ar
+AR = ar $(AR_TFLAG)
 MAKE = make
 
 C_SRC = $(shell find src -name "*.c")
@@ -43,6 +75,9 @@ INSTALL_INCLUDE = include/uconv.h
 # Thirdparty
 # ---------------------------------------------------------
 
+# Flat archives to include in final .so/.ar lib file
+THIRDPARTY_AR =
+
 THIRDPARTY_CFLAGS =
 
 # ---------------------------------------------------------
@@ -50,7 +85,7 @@ THIRDPARTY_CFLAGS =
 # ---------------------------------------------------------
 
 SRC_CFLAGS_DEBUG = -g
-SRC_CFLAGS_OPTIMIZATION = -O2
+SRC_CFLAGS_OPTIMIZATION = $(OPT_FLAG)
 SRC_CFLAGS_WARN = -Wall
 SRC_CFLAGS_MAKE = -MMD -MP
 SRC_CFLAGS_INCLUDE = -Iinclude $(THIRDPARTY_CFLAGS)
@@ -68,13 +103,13 @@ TEST_CFLAGS_WARN = -Wall
 TEST_CFLAGS_MAKE = -MMD -MP
 TEST_CFLAGS_INCLUDE = -Iinclude
 
-TEST_CFLAGS = -c -fPIC $(TEST_CFLAGS_INCLUDE) $(TEST_CFLAGS_MAKE) \
+TEST_CFLAGS = -c $(TEST_CFLAGS_INCLUDE) $(TEST_CFLAGS_MAKE) \
 $(TEST_CFLAGS_WARN) $(TEST_CFLAGS_DEBUG) $(TEST_CFLAGS_OPTIMIZATION)
 
 TEST_LFLAGS = -L. -l$(LIB_NAME)
 
-ifeq ($(LIB_TYPE),shared)
-TEST_LFLAGS += -Wl,-rpath,.
+ifeq ($(LIB_TYPE),so)
+    TEST_LFLAGS += -Wl,-rpath,.
 endif
 
 # ---------------------------------------------------------
@@ -84,10 +119,10 @@ endif
 LIB_AR_FILE = lib$(LIB_NAME).a
 LIB_SO_FILE = lib$(LIB_NAME).so
 
-ifeq ($(LIB_TYPE), archive)
-LIB_FILE = $(LIB_AR_FILE)
+ifeq ($(LIB_TYPE), so)
+    LIB_FILE = $(LIB_SO_FILE)
 else 
-LIB_FILE = $(LIB_SO_FILE)
+    LIB_FILE = $(LIB_AR_FILE)
 endif
 
 # -----------------------------------------------------------------------------
@@ -98,11 +133,11 @@ endif
 
 all: $(LIB_FILE)
 
-$(LIB_AR_FILE): $(C_OBJ) | thirdparty
-	$(AR) rcs $@ $(C_OBJ)
+$(LIB_AR_FILE): $(C_OBJ)
+	$(AR) rcs $@ $(C_OBJ) $(THIRDPARTY_AR)
 
 $(LIB_SO_FILE): $(C_OBJ) | thirdparty
-	$(CC) -shared $(C_OBJ) $(_UCONV_LIB) -o $@
+	$(CC) -shared $(C_OBJ) $(THIRDPARTY_AR) -o $@
 
 thirdparty:
 
