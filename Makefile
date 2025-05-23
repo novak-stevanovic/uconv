@@ -149,7 +149,7 @@ install: $(LIB_PC)
 $(LIB_PC):
 	@echo 'prefix=$(_PC_PREFIX)' > $@
 	@echo 'exec_prefix=$(_PC_EXEC_PREFIX)' >> $@
-	@echo 'libdir=$(-PC_LIBDIR)' >> $@
+	@echo 'libdir=$(_PC_LIBDIR)' >> $@
 	@echo 'includedir=$(_PC_INCLUDEDIR)' >> $@
 	@echo '' >> $@
 	@echo 'Name: $(_PC_NAME)' >> $@
