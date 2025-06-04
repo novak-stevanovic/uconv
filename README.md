@@ -11,8 +11,10 @@ Default options are `PREFIX=/usr/local`, `OPT=2`, `LIB_TYPE=so`, `PC_PREFIX=/usr
 
 ## Usage instructions:
 
-To use the library in your project, you must first install it. This can be done on your system - globally, or locally, inside a project that is using this library.
-1. After installing globally, make sure that pkg-config searches inside `PC_PREFIX`. You can do this by appending `PC_PREFIX` to env variable `PKG_CONFIG_PATH`. Then, compile your project with flags: `$(pkgconf --cflags uconv)` and link with flags: `$(pkgconf --libs uconv)`.
-2. To install locally, adjust `PREFIX` and `PC_PREFIX` to local directories. Run `make install`. Then, again, make sure that pkg-config searches inside `PC_PREFIX`. You can achieve this by using `--with-path` pkg-config flag or temporarily changing `PKG_CONFIG_PATH`. Again, let pkg-config provide the compilation and linking flags.
+Since this "library" consists of only one header and one implementation file, it is probably easiest to just copy-paste the files into your project and compile them alongside other files. The alternative is explained below.
 
-Since this "library" consists of a single header and implementation file, you can also just copy and paste it into your project.
+To use the library in your project, you must first install it. This can be done on your system - globally, or locally, inside a project that is using this library.
+1. Install with desired `PREFIX` and `PC_PREFIX`.
+2. Compile your project with cflags: `pkfconf --cflags uconv` and link with flags: `pkfconf --libs uconv`. For this to work, make sure that pkgconf seaches in the directory `PC_PREFIX` when using pkgconfig.
+
+
