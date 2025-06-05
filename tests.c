@@ -78,11 +78,15 @@ int main(int argc, char *argv[])
         0xED, 0xA0, 0x80
     };
 
+    unsigned char seq15[] = {
+        'A'
+    };
+
     uint32_t cps[20];
     uint8_t seq[50];
     uc_status_t _status;
 
-#define SEQ seq11
+#define SEQ seq15
 
     printf("--------------------------------------------------------------\n");
     printf("[UTF-8] Starting sequence: ");
