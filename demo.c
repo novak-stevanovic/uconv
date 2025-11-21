@@ -1,5 +1,8 @@
-#include "uconv.h"
 #include <stdio.h>
+
+#define _UCONV_IMPLEMENTATION_
+#include "uconv.h"
+#undef _UCONV_IMPLEMENTATION_
 
 void print_utf8_seq(uint8_t* seq, size_t len)
 {
@@ -86,7 +89,7 @@ int main(int argc, char *argv[])
     uint8_t seq[50];
     uc_status_t _status;
 
-#define SEQ seq15
+#define SEQ seq12
 
     printf("--------------------------------------------------------------\n");
     printf("[UTF-8] Starting sequence: ");
