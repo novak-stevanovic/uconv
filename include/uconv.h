@@ -40,31 +40,27 @@ extern "C" {
 #define UC_UNICODE_SURROGATE_START 0xD800
 #define UC_UNICODE_SURROGATE_END 0xDFFF
 
-/* All codepoints that require 1 byte to encode will be inside this range */
-#define UC_1BYTE_SEQ_RANGE_START 0x0000
-#define UC_1BYTE_SEQ_RANGE_END 0x007F
-/* All codepoints that require 2 bytes to encode will be inside this range */
-#define UC_2BYTE_SEQ_RANGE_START 0x0080
-#define UC_2BYTE_SEQ_RANGE_END 0x07FF
-/* All codepoints that require 3 bytes to encode will be inside this range */
-#define UC_3BYTE_SEQ_RANGE_START 0x0800
-#define UC_3BYTE_SEQ_RANGE_END 0xFFFF
-/* All codepoints that require 4 bytes to encode will be inside this range */
-#define UC_4BYTE_SEQ_RANGE_START 0x010000
-#define UC_4BYTE_SEQ_RANGE_END 0x10FFFF
+#define UC_UTF8_1BYTE_UNIT_UNICODE_RANGE_START 0x0000
+#define UC_UTF8_1BYTE_UNIT_UNICODE_RANGE_END 0x007F
+#define UC_UTF8_2BYTE_UNIT_UNICODE_RANGE_START 0x0080
+#define UC_UTF8_2BYTE_UNIT_UNICODE_RANGE_END 0x07FF
+#define UC_UTF8_3BYTE_UNIT_UNICODE_RANGE_START 0x0800
+#define UC_UTF8_3BYTE_UNIT_UNICODE_RANGE_END 0xFFFF
+#define UC_UTF8_4BYTE_UNIT_UNICODE_RANGE_START 0x010000
+#define UC_UTF8_4BYTE_UNIT_UNICODE_RANGE_END 0x10FFFF
 
 /* UTF8 SEQUENCES:
  * 1 BYTE SEQUENCE - START BYTE FORMAT: 0xxxxxxx
  * 2 BYTE SEQUENCE - START BYTE FORMAT: 110xxxxx
  * 3 BYTE SEQUENCE - START BYTE FORMAT: 1110xxxx
  * 4 BYTE SEQUENCE - START BYTE FORMAT: 11110xxx
- * CONTINUATION BYTE - FORMAT: 10xxxxxx */
+ * CONTINUATION BYTE FORMAT: 10xxxxxx */
 
 /* -------------------------------------------------------------------------- */
 /* ERROR HANDLING */
 /* -------------------------------------------------------------------------- */
 
-typedef int uc_status_t;
+typedef int uc_status;
 
 #define UC_SUCCESS 0
 #define UC_ERR_INVALID_ARG 1
@@ -81,10 +77,10 @@ typedef int uc_status_t;
 /* FLAGS */
 /* -------------------------------------------------------------------------- */
 
-typedef uint8_t uc_flags_t;
+typedef uint8_t uc_flags;
 
-#define UC_ALLOW_SURROGATE (1 << 0)
-#define UC_ALLOW_OVERLONG (1 << 1)
+#define UC_FLAG_ALLOW_SURROGATE (1 << 0)
+#define UC_FLAG_ALLOW_OVERLONG (1 << 1)
 
 /* -------------------------------------------------------------------------- */
 /* CONVENIENCE FUNCTIONS/MACROS */
@@ -94,12 +90,24 @@ typedef uint8_t uc_flags_t;
  * @brief Checks if the codepoint is in Unicode range.
  *
  * POSSIBLE FLAGS:
- * 1) UC_ALLOW_SURROGATE - If the codepoint is in the surrogate range,
+ * 1) UC_FLAG_ALLOW_SURROGATE - If the codepoint is in the surrogate range,
  * the function will return true.
  *
  * RETURN VALUE: true or false.
 */
-bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags);
+bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags flags);
+
+/* ------------------------------------------------------ */
+
+/**
+ * @brief Determines the length of a UTF8 unit depending on the provided
+ * start byte.
+ *
+ * RETURN VALUE: 
+ * ON SUCCESS: Integer value [1-4].
+ * ON FALURE: SIZE_MAX if the start byte is of invalid format.
+*/
+size_t uc_utf8_unit_len(uint8_t utf8_sbyte);
 
 /* -------------------------------------------------------------------------- */
 /* UTF8 -> UTF32 */
@@ -130,9 +138,9 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags);
  * @param out_status     Indicates success or a specific error condition. 
  *
  * POSSIBLE FLAGS:
- * 1) UC_ALLOW_SURROGATE - If the function runs into a surrogate value, it will
+ * 1) UC_FLAG_ALLOW_SURROGATE - If the function runs into a surrogate value, it will
  * not return with an error, but proceed decoding.
- * 2) UC_ALLOW_OVERLONG - If the function runs into an "overlong-ly encoded"
+ * 2) UC_FLAG_ALLOW_OVERLONG - If the function runs into an "overlong-ly encoded"
  * codepoint, it will not return with an error, but proceed decoding.
  *
  * STATUS CODES:
@@ -142,7 +150,7 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags);
  * decoding would exceed the provided `capacity`.
  * * 4) UC_ERR_INVALID_SIZE - The last processed UTF-8 "character" is cut-off due to
  * `len`.
- * 5) UC_ERR_OVERLONG - Flag UC_ALLOW_OVERLONG was not set and the UTF-8 sequence
+ * 5) UC_ERR_OVERLONG - Flag UC_FLAG_ALLOW_OVERLONG was not set and the UTF-8 sequence
  * ran into overlong encoding.
  * 6) UC_ERR_SURROGATE - Flag UC_ERR_SURROGATE was not set and the UTF-8 sequence
  * ran into a surrogate unicode value.
@@ -152,8 +160,8 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags);
  * continuation byte of invalid format.
  */
 void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
-        uint32_t* out_utf32_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_width, uc_status_t* out_status);
+        uint32_t* out_utf32_seq, size_t capacity, uc_flags flags,
+        size_t* out_width, uc_status* out_status);
 
 /* -------------------------------------------------------------------------- */
 /* UTF32 -> UTF8 */
@@ -186,7 +194,7 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
  * @param out_status     Indicates success or a specific error condition.
  *
  * POSSIBLE FLAGS:
- * 1) UC_ALLOW_SURROGATE - If the function encounters a surrogate code point,
+ * 1) UC_FLAG_ALLOW_SURROGATE - If the function encounters a surrogate code point,
  * it will not return an error but proceed encoding.
  *
  * STATUS CODES:
@@ -194,14 +202,14 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
  * 2) UC_ERR_INVALID_ARG - `utf32_seq` is NULL.
  * 3) UC_ERR_NOT_ENOUGH_CAPACITY - `out_utf8_seq` is not NULL and the encoding
  * would exceed the `capacity` of the output buffer.
- * 4) UC_ERR_SURROGATE - Flag UC_ALLOW_SURROGATE was not set and a surrogate
+ * 4) UC_ERR_SURROGATE - Flag UC_FLAG_ALLOW_SURROGATE was not set and a surrogate
  * code point was encountered.
  * 5) UC_ERR_INVALID_CODEPOINT - A code point is outside the valid Unicode
  * range (greater than U+10FFFF).
  */
 void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
-        uint8_t* out_utf8_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_width, size_t* out_len, uc_status_t* out_status);
+        uint8_t* out_utf8_seq, size_t capacity, uc_flags flags,
+        size_t* out_width, size_t* out_len, uc_status* out_status);
 
 /* -------------------------------------------------------------------------- */
 
@@ -213,15 +221,6 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 
 #ifdef _UCONV_IMPLEMENTATION_
 
-static inline size_t _uc_utf8_char_len(uint8_t utf8_sbyte)
-{
-    if((utf8_sbyte & 0x80) == 0) return 1;
-    else if((utf8_sbyte & 0xE0) == 0xC0) return 2;
-    else if((utf8_sbyte & 0xF0) == 0xE0) return 3;
-    else if((utf8_sbyte & 0xF8) == 0xF0) return 4;
-    else return SIZE_MAX;
-}
-
 static inline bool _uc_utf8_overlong(uint32_t utf32_cp, size_t utf8_unit_size)
 {
     switch(utf8_unit_size)
@@ -229,11 +228,11 @@ static inline bool _uc_utf8_overlong(uint32_t utf32_cp, size_t utf8_unit_size)
         case 1:
             return false;
         case 2:
-            return (utf32_cp < UC_2BYTE_SEQ_RANGE_START);
+            return (utf32_cp < UC_UTF8_2BYTE_UNIT_UNICODE_RANGE_START);
         case 3:
-            return (utf32_cp < UC_3BYTE_SEQ_RANGE_START);
+            return (utf32_cp < UC_UTF8_3BYTE_UNIT_UNICODE_RANGE_START);
         case 4:
-            return (utf32_cp < UC_4BYTE_SEQ_RANGE_START);
+            return (utf32_cp < UC_UTF8_4BYTE_UNIT_UNICODE_RANGE_START);
         default: // undefined
             return true;
     }
@@ -250,9 +249,9 @@ static inline bool _uc_utf32_cp_overflow(uint32_t utf32_cp)
     return (utf32_cp > UC_UNICODE_MAX);
 }
 
-bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags)
+bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags flags)
 {
-    if(flags & UC_ALLOW_SURROGATE)
+    if(flags & UC_FLAG_ALLOW_SURROGATE)
     {
         return (!_uc_utf32_cp_overflow(utf32_codepoint));
     }
@@ -263,6 +262,15 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags)
     }
 }
 
+size_t uc_utf8_unit_len(uint8_t utf8_sbyte)
+{
+    if((utf8_sbyte & 0x80) == 0) return 1;
+    else if((utf8_sbyte & 0xE0) == 0xC0) return 2;
+    else if((utf8_sbyte & 0xF0) == 0xE0) return 3;
+    else if((utf8_sbyte & 0xF8) == 0xF0) return 4;
+    else return SIZE_MAX;
+}
+
 #define _uc_return(width, status)                                              \
     if(out_width != NULL)                                                      \
         *out_width = (width);                                                  \
@@ -271,8 +279,8 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags_t flags)
     return                                                                     \
 
 void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
-        uint32_t* out_utf32_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_width, uc_status_t* out_status)
+        uint32_t* out_utf32_seq, size_t capacity, uc_flags flags,
+        size_t* out_width, uc_status* out_status)
 {
     if(utf8_seq == NULL)
     {
@@ -290,7 +298,7 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
             _uc_return(counter, UC_ERR_NOT_ENOUGH_CAPACITY);
         }
         
-        i_len = _uc_utf8_char_len(utf8_seq[i]);
+        i_len = uc_utf8_unit_len(utf8_seq[i]);
         switch(i_len)
         {
             case 1:
@@ -329,14 +337,14 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         i += j;
 
         // Check for overlong if needed
-        if(!(flags & UC_ALLOW_OVERLONG) &&
+        if(!(flags & UC_FLAG_ALLOW_OVERLONG) &&
             _uc_utf8_overlong(i_cp, i_len))
         {
             _uc_return(counter, UC_ERR_OVERLONG);
         }
 
         // Check for surrogate if needed
-        if(!(flags & UC_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
+        if(!(flags & UC_FLAG_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
         {
             _uc_return(counter, UC_ERR_SURROGATE);
         }
@@ -360,8 +368,8 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
     return                                                                     \
 
 void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
-        uint8_t* out_utf8_seq, size_t capacity, uc_flags_t flags,
-        size_t* out_width, size_t* out_len, uc_status_t* out_status)
+        uint8_t* out_utf8_seq, size_t capacity, uc_flags flags,
+        size_t* out_width, size_t* out_len, uc_status* out_status)
 {
     if(utf32_seq == NULL)
     {
@@ -376,7 +384,7 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
     for(; i < width; i++, bcount += i_len)
     {
         i_cp = utf32_seq[i];
-        if(!(flags & UC_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
+        if(!(flags & UC_FLAG_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
         {
             _uc_return(i, bcount, UC_ERR_SURROGATE);
         }
@@ -385,12 +393,12 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
             _uc_return(i, bcount, UC_ERR_INVALID_CODEPOINT);
         }
 
-        if(i_cp <= UC_1BYTE_SEQ_RANGE_END)
+        if(i_cp <= UC_UTF8_1BYTE_UNIT_UNICODE_RANGE_END)
         {
             i_len = 1;
             i_char = (uint8_t)i_cp;
         }
-        else if(i_cp <= UC_2BYTE_SEQ_RANGE_END)
+        else if(i_cp <= UC_UTF8_2BYTE_UNIT_UNICODE_RANGE_END)
         {
             // 0 0 00000abc defghijk
             // 1. 110abcde
@@ -399,7 +407,7 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
             i_len = 2;
             i_char = ((uint8_t)(i_cp >> 6)) | 0xC0;
         }
-        else if(i_cp <= UC_3BYTE_SEQ_RANGE_END)
+        else if(i_cp <= UC_UTF8_3BYTE_UNIT_UNICODE_RANGE_END)
         {
             // 0 0 abcdefgh ijklmnop
             // 1. 1110abcd

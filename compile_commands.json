@@ -5,7 +5,6 @@
       "-c",
       "-Iinclude",
       "-Wall",
-      "-g",
       "-O0",
       "-o",
       "build/demo.o",
