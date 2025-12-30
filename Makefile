@@ -18,12 +18,6 @@ PREFIX ?= /usr/local
 
 OPT ?= 2
 
-DEBUG ?= 0
-ifeq ($(DEBUG),1)
-    DEBUG_FLAG = -g
-    OPT_FLAG = -O0
-endif
-
 CC = gcc
 MAKE = make
 
@@ -37,6 +31,12 @@ HEADERS = include/uconv.h
 INSTALL_INCLUDE = include/*
 
 OPT_FLAG = -O$(OPT)
+
+DEBUG ?= 0
+ifeq ($(DEBUG),1)
+    DEBUG_FLAG = -g
+    OPT_FLAG = -O0
+endif
 
 # -----------------------------------------------------------------------------
 # Build Flags
