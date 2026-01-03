@@ -93,6 +93,7 @@ typedef uint8_t uc_flags;
  * the function will return true.
  *
  * RETURN VALUE: true or false. */
+
 bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags flags);
 
 /* ------------------------------------------------------ */
@@ -102,6 +103,7 @@ bool uc_utf32_is_in_range(uint32_t utf32_codepoint, uc_flags flags);
  * RETURN VALUE: 
  * ON SUCCESS: Integer value [1-4].
  * ON FALURE: SIZE_MAX if the start byte is of invalid format. */
+
 size_t uc_utf8_unit_len(uint8_t utf8_sbyte);
 
 /* ------------------------------------------------------ */
@@ -153,6 +155,7 @@ void uc_utf32_to_utf8_single(uint32_t utf32, uc_flags flags,
  * start byte that has an invalid format.
  * 8) UC_ERR_INVALID_CBYTE - The function ran into a UTF-8 character with a
  * continuation byte of invalid format. */
+
 void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         uint32_t* out_utf32_seq, size_t capacity, uc_flags flags,
         size_t* out_width, uc_status* out_status);
@@ -187,8 +190,8 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
  * 4) UC_ERR_SURROGATE - Flag UC_FLAG_ALLOW_SURROGATE was not set and a surrogate
  * code point was encountered.
  * 5) UC_ERR_INVALID_CODEPOINT - A code point is outside the valid Unicode
- * range (greater than U+10FFFF).
- */
+ * range (greater than U+10FFFF). */
+
 void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         uint8_t* out_utf8_seq, size_t capacity, uc_flags flags,
         size_t* out_width, size_t* out_len, uc_status* out_status);
