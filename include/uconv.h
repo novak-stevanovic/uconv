@@ -206,6 +206,9 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 
 #ifdef _UCONV_IMPLEMENTATION_
 
+#define SET_OUT(out_param, out_val) \
+    if((out_param) != NULL) (*(out_param)) = (out_val);
+
 static inline bool _uc_utf8_overlong(uint32_t utf32_cp, size_t utf8_unit_size)
 {
     switch(utf8_unit_size)
@@ -256,13 +259,6 @@ size_t uc_utf8_unit_len(uint8_t utf8_sbyte)
     else return SIZE_MAX;
 }
 
-#define _uc_return(width, status)                                              \
-    if(out_width != NULL)                                                      \
-        *out_width = (width);                                                  \
-    if(out_status != NULL)                                                     \
-        *out_status = (status);                                                \
-    return                                                                     \
-
 uint32_t uc_utf8_to_utf32_single(const uint8_t* utf8_seq,
         size_t len, uc_flags flags, uc_status* out_status)
 {
@@ -284,7 +280,9 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
 {
     if(utf8_seq == NULL)
     {
-        _uc_return(0, UC_ERR_INVALID_ARG);
+        SET_OUT(out_width, 0);
+        SET_OUT(out_status, UC_ERR_INVALID_ARG);
+        return;
     }
 
     size_t i = 0;
@@ -295,7 +293,9 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
     {
         if((out_utf32_seq != NULL) && (counter >= capacity))
         {
-            _uc_return(counter, UC_ERR_NOT_ENOUGH_CAPACITY);
+            SET_OUT(out_width, counter);
+            SET_OUT(out_status, UC_ERR_NOT_ENOUGH_CAPACITY);
+            return;
         }
         
         i_len = uc_utf8_unit_len(utf8_seq[i]);
@@ -314,12 +314,16 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
                 i_cp = ((uint32_t)(utf8_seq[i] & 0x0F) << 18);
                 break;
             default:
-                _uc_return(counter, UC_ERR_INVALID_SBYTE);
+                SET_OUT(out_width, counter);
+                SET_OUT(out_status, UC_ERR_INVALID_SBYTE);
+                return;
         }
 
         if((i + i_len) > len)
         {
-            _uc_return(counter, UC_ERR_INVALID_SIZE);
+            SET_OUT(out_width, counter);
+            SET_OUT(out_status, UC_ERR_INVALID_SIZE);
+            return;
         }
 
         // Process (it_len - 1) continuation bytes
@@ -328,7 +332,9 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         {
             if((utf8_seq[i + j] & 0xC0) != 0x80) // invalid continuation byte
             {
-                _uc_return(counter, UC_ERR_INVALID_CBYTE);
+                SET_OUT(out_width, counter);
+                SET_OUT(out_status, UC_ERR_INVALID_CBYTE);
+                return;
             }
             j_shift = (i_len - j - 1) * 6;
 
@@ -340,32 +346,26 @@ void uc_utf8_to_utf32(const uint8_t* utf8_seq, size_t len,
         if(!(flags & UC_FLAG_ALLOW_OVERLONG) &&
             _uc_utf8_overlong(i_cp, i_len))
         {
-            _uc_return(counter, UC_ERR_OVERLONG);
+            SET_OUT(out_width, counter);
+            SET_OUT(out_status, UC_ERR_OVERLONG);
+            return;
         }
 
         // Check for surrogate if needed
         if(!(flags & UC_FLAG_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
         {
-            _uc_return(counter, UC_ERR_SURROGATE);
+            SET_OUT(out_width, counter);
+            SET_OUT(out_status, UC_ERR_SURROGATE);
+            return;
         }
 
         if(out_utf32_seq != NULL)
             out_utf32_seq[counter] = i_cp;
     }
 
-    _uc_return(counter, UC_SUCCESS);
+    SET_OUT(out_width, counter);
+    SET_OUT(out_status, UC_SUCCESS);
 }
-
-
-#undef _uc_return
-#define _uc_return(width, len, status)                                         \
-    if(out_width != NULL)                                                      \
-        *out_width = (width);                                                  \
-    if(out_len != NULL)                                                        \
-        *out_len = (len);                                                      \
-    if(out_status != NULL)                                                     \
-        *out_status = (status);                                                \
-    return                                                                     \
 
 void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         uint8_t* out_utf8_seq, size_t capacity, uc_flags flags,
@@ -373,7 +373,10 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 {
     if(utf32_seq == NULL)
     {
-        _uc_return(0, 0, UC_ERR_INVALID_ARG);
+        SET_OUT(out_width, 0);
+        SET_OUT(out_len, 0);
+        SET_OUT(out_status, UC_ERR_INVALID_ARG);
+        return;
     }
 
     size_t i = 0, j;
@@ -386,11 +389,17 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
         i_cp = utf32_seq[i];
         if(!(flags & UC_FLAG_ALLOW_SURROGATE) && _uc_utf32_cp_surrogate(i_cp))
         {
-            _uc_return(i, bcount, UC_ERR_SURROGATE);
+            SET_OUT(out_width, i);
+            SET_OUT(out_len, bcount);
+            SET_OUT(out_status, UC_ERR_SURROGATE);
+            return;
         }
         if(_uc_utf32_cp_overflow(i_cp))
         {
-            _uc_return(i, bcount, UC_ERR_INVALID_CODEPOINT);
+            SET_OUT(out_width, i);
+            SET_OUT(out_len, bcount);
+            SET_OUT(out_status, UC_ERR_INVALID_CODEPOINT);
+            return;
         }
 
         if(i_cp <= UC_UTF8_1BYTE_UNIT_UNICODE_RANGE_END)
@@ -434,7 +443,10 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 
         if((out_utf8_seq != NULL) && ((bcount + i_len) > capacity))
         {
-            _uc_return(i, bcount, UC_ERR_NOT_ENOUGH_CAPACITY);
+            SET_OUT(out_width, i);
+            SET_OUT(out_len, bcount);
+            SET_OUT(out_status, UC_ERR_NOT_ENOUGH_CAPACITY);
+            return;
         }
 
         // Process continuation bytes
@@ -451,7 +463,9 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 
     }
 
-    _uc_return(i, bcount, UC_SUCCESS);
+    SET_OUT(out_width, i);
+    SET_OUT(out_len, bcount);
+    SET_OUT(out_status, UC_SUCCESS);
 }
 
 #endif // _UCONV_IMPLEMENTATION_
