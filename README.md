@@ -4,7 +4,7 @@ __UConv__ is a tiny C header-only library for converting between __UTF-8__ and _
 
 ## Dependencies
 
-This library is standalone.
+This library is stand-alone.
 
 ## Makefile instructions:
 
