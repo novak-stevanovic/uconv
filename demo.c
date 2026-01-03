@@ -1,8 +1,5 @@
 #include <stdio.h>
-
-#define _UCONV_IMPLEMENTATION_
 #include "uconv.h"
-#undef _UCONV_IMPLEMENTATION_
 
 void print_utf8_seq(uint8_t* seq, size_t len)
 {
