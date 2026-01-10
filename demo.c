@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
     uint32_t cps[20];
     uint8_t seq[50];
-    uc_status _status;
+    int _status;
 
 #define SEQ seq12
 
