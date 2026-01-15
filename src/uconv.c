@@ -1,2 +1,2 @@
-#define _UCONV_IMPLEMENTATION_
+#define UCONV_IMPLEMENTATION
 #include "uconv.h"

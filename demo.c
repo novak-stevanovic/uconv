@@ -1,5 +1,8 @@
 #include <stdio.h>
-#include "uconv.h"
+// #include "uconv.h"
+
+#define UCONV_IMPLEMENTATION
+#include "include/uconv.h"
 
 void print_utf8_seq(uint8_t* seq, size_t len)
 {
@@ -11,6 +14,8 @@ void print_utf8_seq(uint8_t* seq, size_t len)
     for(i = 0; i < len - 1; i++) printf("%x ", seq[i]);
     printf("%x", seq[i]);
     printf(")");
+
+    uc_utf8_unit_len((uint8_t)'c');
 }
 
 void print_utf32_seq(uint32_t* seq, size_t width)

@@ -25,8 +25,8 @@
 /* START */
 /* -------------------------------------------------------------------------- */
 
-#ifndef _UCONV_H_
-#define _UCONV_H_
+#ifndef UCONV_H
+#define UCONV_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -199,9 +199,9 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
 }
 #endif
 
-#endif // _UCONV_H_
+#endif // UCONV_H
 
-#ifdef _UCONV_IMPLEMENTATION_
+#ifdef UCONV_IMPLEMENTATION
 
 #define SET_OUT(out_param, out_val) \
     if((out_param) != NULL) (*(out_param)) = (out_val);
@@ -477,4 +477,4 @@ void uc_utf32_to_utf8(const uint32_t* utf32_seq, size_t width,
     SET_OUT(out_status, UC_SUCCESS);
 }
 
-#endif // _UCONV_IMPLEMENTATION_
+#endif // UCONV_IMPLEMENTATION
