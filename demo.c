@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     print_utf32_seq(cps, width1);
     printf("\n");
 
-    if(_status == UC_SUCCESS)
+    if(_status == 0)
     {
         printf("--------------------------------------------------------------\n");
         printf("[UTF-32 -> UTF-8] Converting back...\n");
