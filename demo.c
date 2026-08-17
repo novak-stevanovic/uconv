@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     printf("--------------------------------------------------------------\n");
     printf("[UTF-8 -> UTF-32] Converting...\n");
     size_t width1;
-    uc_utf8_to_utf32(SEQ, sizeof(SEQ), cps, 20, 0, &width1, &_status);
+    uc_utf8_to_utf32(SEQ, sizeof(SEQ), cps, 20, 0, &width1);
     printf("[UTF-8 -> UTF-32] Result: width - %ld | status - %d\n",
             width1, _status);
     printf("[UTF-8 -> UTF-32] Resulting codepoints: ");
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         printf("--------------------------------------------------------------\n");
         printf("[UTF-32 -> UTF-8] Converting back...\n");
         size_t width2, len2;
-        uc_utf32_to_utf8(cps, width1, seq, 50, 0, &width2, &len2, &_status);
+        uc_utf32_to_utf8(cps, width1, seq, 50, 0, &width2, &len2);
         printf("[UTF-32 -> UTF-8] Result: width - %ld | len - %ld | status - %d\n",
                 width2, len2, _status);
         printf("[UTF-32 -> UTF-8] Resulting sequence: ");
