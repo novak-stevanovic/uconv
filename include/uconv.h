@@ -30,13 +30,13 @@
 #ifndef UCONV_H
 #define UCONV_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
 #if !defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L)
 #error "C99 or newer is required"
 #endif /* C99 check */
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define UC_UNICODE_MAX 0x10FFFF
 #define UC_UNICODE_SURROGATE_START 0xD800
