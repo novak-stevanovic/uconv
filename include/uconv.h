@@ -38,8 +38,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if !defined(INT32_MAX) || !defined(INT8_MAX)
-#error "This library requires int32_t and int8_t support"
+#if !defined(UINT32_MAX) || !defined(UINT8_MAX)
+#error "This library requires uint32_t and uint8_t support"
 #endif
 
 #define UC_UNICODE_MAX 0x10FFFF
