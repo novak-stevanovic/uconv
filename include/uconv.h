@@ -38,13 +38,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifndef INT32_MAX
-#error "This library requires int32_t support"
-#endif // INT32_MAX
-
-#ifndef INT8_MAX
-#error "This library requires int32_t support"
-#endif // INT8_MAX
+#if !defined(INT32_MAX) || !defined(INT8_MAX)
+#error "This library requires int32_t and int8_t support"
+#endif
 
 #define UC_UNICODE_MAX 0x10FFFF
 #define UC_UNICODE_SURROGATE_START 0xD800
