@@ -93,7 +93,7 @@ PC_LIBDIR := $${exec_prefix}/lib
 PC_INCLUDEDIR := $${prefix}/include
 
 PC_NAME := $(LIB)
-PC_DESCRIPTION := Simple arena allocator
+PC_DESCRIPTION := UTF conversion library
 PC_VERSION := 1.0.0
 
 PC_LIBS := -L$${libdir} -l$(LIB)
@@ -203,5 +203,3 @@ clean:
 	rm -f $(LIB_PC)
 	rm -f compile_commands.json
 	rm -f gdb.txt
-
--include $(C_DEP)
