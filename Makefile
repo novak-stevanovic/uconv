@@ -89,6 +89,8 @@ SRC_CFLAGS_INCLUDE = -Iinclude $(DEP_CFLAGS)
 
 ifeq ($(DEBUG),1)
     SRC_CFLAGS_WARN = -Wall -Wpedantic -Wextra
+else
+    SRC_CFLAGS_WARN = -Wall -Wfatal-errors
 endif
 
 SRC_CFLAGS = -c -fPIC $(SRC_CFLAGS_STD) $(SRC_CFLAGS_INCLUDE) $(SRC_CFLAGS_MAKE) \
